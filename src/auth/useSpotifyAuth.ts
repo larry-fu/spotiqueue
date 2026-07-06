@@ -52,7 +52,6 @@ export function useSpotifyAuth() {
     setIsLoggingIn(true);
     try {
       const result = await promptAsync();
-      console.log('[auth] promptAsync result type:', result.type); // TEMP DEBUG
       if (result.type !== 'success' || !result.params.code) return;
 
       const tokenResponse = await AuthSession.exchangeCodeAsync(
@@ -64,9 +63,6 @@ export function useSpotifyAuth() {
         },
         discovery
       );
-
-      // TEMP DEBUG — the scopes Spotify actually granted this token.
-      console.log('[auth] granted scope:', tokenResponse.scope);
 
       const next: StoredTokens = {
         accessToken: tokenResponse.accessToken,

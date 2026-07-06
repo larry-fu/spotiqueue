@@ -10,7 +10,11 @@ export class SpotifyApiError extends Error {
 async function spotifyFetch<T>(
   accessToken: string,
   path: string,
-  init?: RequestInit
+  init?: RequestInit,
+  // Some write endpoints (e.g. POST /me/player/queue) return 2xx with a bare,
+  // opaque command id rather than JSON. Callers that don't need the body pass
+  // false so a non-JSON success is treated as success instead of a parse error.
+  expectJson = true
 ): Promise<T | null> {
   const res = await fetch(`${SPOTIFY_API_BASE}${path}`, {
     ...init,
@@ -21,24 +25,32 @@ async function spotifyFetch<T>(
     },
   });
 
-  // TEMP DEBUG — never logs the token, only method/path/status.
-  console.log('[spotifyFetch]', init?.method ?? 'GET', path, '->', res.status);
-
-  if (res.status === 204) return null;
+  // Read the body once, as text, so we can handle empty/non-JSON responses
+  // without JSON.parse throwing a cryptic "Unexpected character" error.
+  const raw = res.status === 204 ? '' : await res.text();
 
   if (!res.ok) {
     let message = `Spotify request failed (${res.status})`;
     try {
-      const body = await res.json();
-      console.log('[spotifyFetch] error body:', JSON.stringify(body)); // TEMP DEBUG
-      message = body?.error?.message ?? message;
+      message = JSON.parse(raw)?.error?.message ?? message;
     } catch {
       // response had no JSON body; keep the default message
     }
     throw new SpotifyApiError(message, res.status);
   }
 
-  return (await res.json()) as T;
+  // Empty success body (e.g. 204), or a caller that doesn't expect JSON: the
+  // request succeeded and there's nothing to parse.
+  if (!raw.trim() || !expectJson) return null;
+
+  try {
+    return JSON.parse(raw) as T;
+  } catch {
+    throw new SpotifyApiError(
+      `Spotify returned an unexpected (non-JSON) response (${res.status}).`,
+      res.status
+    );
+  }
 }
 
 export async function searchTracks(
@@ -60,27 +72,6 @@ export async function getUserPlaylists(accessToken: string): Promise<SpotifyPlay
     accessToken,
     '/me/playlists?limit=50'
   );
-  // TEMP DEBUG — log who you are vs. who owns each playlist.
-  const me = await spotifyFetch<{ id: string; display_name?: string }>(accessToken, '/me');
-  console.log('[whoami] my user id:', me?.id, me?.display_name);
-  for (const p of data?.items ?? []) {
-    if (p) {
-      const meta = p as SpotifyPlaylist & { collaborative?: boolean; public?: boolean };
-      console.log(
-        '[playlist]',
-        p.name,
-        '| id:',
-        p.id,
-        '| owner:',
-        p.owner?.id,
-        '| collaborative:',
-        meta.collaborative,
-        '| public:',
-        meta.public
-      );
-    }
-  }
-
   // The array can contain null entries (e.g. an unavailable playlist).
   return (data?.items ?? []).filter((p): p is SpotifyPlaylist => !!p && !!p.id);
 }
@@ -126,13 +117,6 @@ export async function getPlaylistTracks(
       track?: (SpotifyTrack & { type?: string }) | null;
     }[];
   }>(accessToken, `/playlists/${playlistId}/items?limit=100`);
-  // TEMP DEBUG — shows how many entries came back and the keys of the first one.
-  console.log(
-    '[getPlaylistTracks] item count:',
-    data?.items?.length,
-    'first entry keys:',
-    data?.items?.[0] ? Object.keys(data.items[0]) : null
-  );
   return (data?.items ?? [])
     .map((entry) => entry.item ?? entry.track)
     .filter((t): t is SpotifyTrack & { type?: string } => !!t)
@@ -163,7 +147,10 @@ export async function addTrackToPlaylist(
 
 export async function addTrackToQueue(accessToken: string, trackUri: string): Promise<void> {
   const params = new URLSearchParams({ uri: trackUri });
-  await spotifyFetch(accessToken, `/me/player/queue?${params.toString()}`, {
-    method: 'POST',
-  });
+  await spotifyFetch(
+    accessToken,
+    `/me/player/queue?${params.toString()}`,
+    { method: 'POST' },
+    false // success returns an opaque command id, not JSON — don't parse it
+  );
 }
