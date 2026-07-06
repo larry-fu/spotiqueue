@@ -40,7 +40,7 @@ async function spotifyFetch<T>(
 export async function searchTracks(
   accessToken: string,
   query: string,
-  limit = 25
+  limit = 10 // Spotify's /search endpoint caps limit at 10 (range 0-10)
 ): Promise<SpotifyTrack[]> {
   if (!query.trim()) return [];
   const params = new URLSearchParams({ q: query, type: 'track', limit: String(limit) });
