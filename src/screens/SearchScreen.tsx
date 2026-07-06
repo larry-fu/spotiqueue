@@ -12,6 +12,17 @@ interface Props {
 
 const DEBOUNCE_MS = 400;
 
+// Speed bump: make add actions require an explicit confirm so a stray tap can't
+// silently queue a song or mutate a playlist. Resolves true if the user confirms.
+function confirmAdd(title: string, message: string): Promise<boolean> {
+  return new Promise((resolve) => {
+    Alert.alert(title, message, [
+      { text: 'Cancel', style: 'cancel', onPress: () => resolve(false) },
+      { text: 'Add', onPress: () => resolve(true) },
+    ]);
+  });
+}
+
 export function SearchScreen({ getValidAccessToken, onLogout }: Props) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<SpotifyTrack[]>([]);
@@ -55,6 +66,8 @@ export function SearchScreen({ getValidAccessToken, onLogout }: Props) {
 
   const handleAddToQueue = useCallback(
     async (track: SpotifyTrack) => {
+      const ok = await confirmAdd('Add to queue?', `Add "${track.name}" to your playback queue?`);
+      if (!ok) return;
       setBusyTrackId(track.id);
       try {
         const token = await getValidAccessToken();
@@ -81,6 +94,11 @@ export function SearchScreen({ getValidAccessToken, onLogout }: Props) {
       if (!pickerTrack) return;
       const track = pickerTrack;
       setPickerTrack(null);
+      const ok = await confirmAdd(
+        'Add to playlist?',
+        `Add "${track.name}" to "${playlist.name}"?`
+      );
+      if (!ok) return;
       setBusyTrackId(track.id);
       try {
         const token = await getValidAccessToken();
