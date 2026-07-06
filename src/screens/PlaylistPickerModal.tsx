@@ -8,7 +8,7 @@ import {
   Text,
   View,
 } from 'react-native';
-import { getUserPlaylists } from '../api/spotify';
+import { getUserPlaylists, playlistTrackCount } from '../api/spotify';
 import { SpotifyPlaylist } from '../types/spotify';
 
 interface Props {
@@ -16,9 +16,16 @@ interface Props {
   getAccessToken: () => Promise<string | null>;
   onClose: () => void;
   onSelect: (playlist: SpotifyPlaylist) => void;
+  title?: string;
 }
 
-export function PlaylistPickerModal({ visible, getAccessToken, onClose, onSelect }: Props) {
+export function PlaylistPickerModal({
+  visible,
+  getAccessToken,
+  onClose,
+  onSelect,
+  title = 'Add to Playlist',
+}: Props) {
   const [playlists, setPlaylists] = useState<SpotifyPlaylist[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -56,7 +63,7 @@ export function PlaylistPickerModal({ visible, getAccessToken, onClose, onSelect
       <View style={styles.overlay}>
         <View style={styles.sheet}>
           <View style={styles.header}>
-            <Text style={styles.headerText}>Add to Playlist</Text>
+            <Text style={styles.headerText}>{title}</Text>
             <Pressable onPress={onClose}>
               <Text style={styles.close}>Close</Text>
             </Pressable>
@@ -69,7 +76,7 @@ export function PlaylistPickerModal({ visible, getAccessToken, onClose, onSelect
             renderItem={({ item }) => (
               <Pressable style={styles.playlistRow} onPress={() => onSelect(item)}>
                 <Text style={styles.playlistName}>{item.name}</Text>
-                <Text style={styles.playlistCount}>{item.tracks.total} tracks</Text>
+                <Text style={styles.playlistCount}>{playlistTrackCount(item)} tracks</Text>
               </Pressable>
             )}
             ListEmptyComponent={

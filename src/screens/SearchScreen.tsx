@@ -4,6 +4,8 @@ import { addTrackToPlaylist, addTrackToQueue, searchTracks, SpotifyApiError } fr
 import { TrackRow } from '../components/TrackRow';
 import { SpotifyPlaylist, SpotifyTrack } from '../types/spotify';
 import { PlaylistPickerModal } from './PlaylistPickerModal';
+import { PlaylistDetailModal } from './PlaylistDetailModal';
+import { QueueModal } from './QueueModal';
 
 interface Props {
   getValidAccessToken: () => Promise<string | null>;
@@ -30,6 +32,9 @@ export function SearchScreen({ getValidAccessToken, onLogout }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [busyTrackId, setBusyTrackId] = useState<string | null>(null);
   const [pickerTrack, setPickerTrack] = useState<SpotifyTrack | null>(null);
+  const [queueVisible, setQueueVisible] = useState(false);
+  const [browseVisible, setBrowseVisible] = useState(false);
+  const [viewingPlaylist, setViewingPlaylist] = useState<SpotifyPlaylist | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -118,9 +123,25 @@ export function SearchScreen({ getValidAccessToken, onLogout }: Props) {
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>spotiQueue</Text>
-        <Pressable onPress={onLogout}>
-          <Text style={styles.logout}>Log out</Text>
-        </Pressable>
+        <View style={styles.headerActions}>
+          <Pressable
+            hitSlop={8}
+            onPress={() => setQueueVisible(true)}
+            style={styles.headerButton}
+          >
+            <Text style={styles.headerAction}>Queue</Text>
+          </Pressable>
+          <Pressable
+            hitSlop={8}
+            onPress={() => setBrowseVisible(true)}
+            style={styles.headerButton}
+          >
+            <Text style={styles.headerAction}>Playlists</Text>
+          </Pressable>
+          <Pressable hitSlop={8} onPress={onLogout} style={styles.headerButton}>
+            <Text style={styles.logout}>Log out</Text>
+          </Pressable>
+        </View>
       </View>
       <TextInput
         style={styles.input}
@@ -155,6 +176,27 @@ export function SearchScreen({ getValidAccessToken, onLogout }: Props) {
         onClose={() => setPickerTrack(null)}
         onSelect={handleSelectPlaylist}
       />
+      <PlaylistPickerModal
+        visible={browseVisible}
+        title="Your Playlists"
+        getAccessToken={getValidAccessToken}
+        onClose={() => setBrowseVisible(false)}
+        onSelect={(playlist) => {
+          setBrowseVisible(false);
+          setViewingPlaylist(playlist);
+        }}
+      />
+      <PlaylistDetailModal
+        visible={!!viewingPlaylist}
+        playlist={viewingPlaylist}
+        getAccessToken={getValidAccessToken}
+        onClose={() => setViewingPlaylist(null)}
+      />
+      <QueueModal
+        visible={queueVisible}
+        getAccessToken={getValidAccessToken}
+        onClose={() => setQueueVisible(false)}
+      />
     </View>
   );
 }
@@ -169,6 +211,9 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   headerTitle: { color: '#fff', fontSize: 22, fontWeight: '800' },
+  headerActions: { flexDirection: 'row', alignItems: 'center' },
+  headerButton: { paddingVertical: 6, paddingLeft: 12 },
+  headerAction: { color: '#1DB954', fontSize: 14 },
   logout: { color: '#1DB954', fontSize: 14 },
   input: {
     backgroundColor: '#1f1f1f',

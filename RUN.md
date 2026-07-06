@@ -50,8 +50,18 @@ if the redirect doesn't return you to the app, switch to a dev build.
 
 1. Tap **Connect with Spotify** and authorize the app.
 2. Search for a song.
-3. Tap **Queue** to add it to your active playback queue, or **Playlist** to add it to
-   one of your existing playlists.
+3. On a result, tap **Queue** to add it to your active playback queue, or **Playlist**
+   to add it to one of your existing playlists. Both actions ask for confirmation
+   first.
+
+The header has two more entry points:
+
+- **Queue** — opens a read-only view of what's playing now and what's up next.
+  (Spotify's Web API has no endpoint for removing a queued item, so there's nothing
+  to delete here — the view shows a note explaining this.)
+- **Playlists** — pick one of your playlists to see its tracks. Each track has a
+  **Remove** button (with a confirmation) that deletes it from the playlist, provided
+  you own / can edit that playlist.
 
 ### Requirements for "Add to Queue"
 

@@ -33,6 +33,9 @@ export function useSpotifyAuth() {
       usePKCE: true,
       redirectUri: SPOTIFY_REDIRECT_URI,
       responseType: AuthSession.ResponseType.Code,
+      // Force Spotify to re-show the consent screen so a previously-granted (and
+      // possibly narrower) authorization can't be silently reused.
+      extraParams: { show_dialog: 'true' },
     },
     discovery
   );
@@ -49,6 +52,7 @@ export function useSpotifyAuth() {
     setIsLoggingIn(true);
     try {
       const result = await promptAsync();
+      console.log('[auth] promptAsync result type:', result.type); // TEMP DEBUG
       if (result.type !== 'success' || !result.params.code) return;
 
       const tokenResponse = await AuthSession.exchangeCodeAsync(
@@ -60,6 +64,9 @@ export function useSpotifyAuth() {
         },
         discovery
       );
+
+      // TEMP DEBUG — the scopes Spotify actually granted this token.
+      console.log('[auth] granted scope:', tokenResponse.scope);
 
       const next: StoredTokens = {
         accessToken: tokenResponse.accessToken,

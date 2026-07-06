@@ -29,7 +29,10 @@ export interface SpotifyPlaylist {
   name: string;
   images: SpotifyImage[];
   owner: { id: string; display_name?: string };
-  tracks: { total: number };
+  // Spotify deprecated `tracks` in favour of `items`; either (or neither) may be
+  // present depending on the playlist, so both are optional. Use playlistTrackCount().
+  items?: { total: number };
+  tracks?: { total: number };
 }
 
 export interface StoredTokens {

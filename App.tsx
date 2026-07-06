@@ -1,6 +1,13 @@
 import { StatusBar } from 'expo-status-bar';
 import React from 'react';
-import { ActivityIndicator, SafeAreaView, StyleSheet, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Platform,
+  SafeAreaView,
+  StatusBar as RNStatusBar,
+  StyleSheet,
+  View,
+} from 'react-native';
 import { useSpotifyAuth } from './src/auth/useSpotifyAuth';
 import { LoginScreen } from './src/screens/LoginScreen';
 import { SearchScreen } from './src/screens/SearchScreen';
@@ -30,6 +37,12 @@ export default function App() {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#000' },
+  // RN's SafeAreaView only insets on iOS; Android's translucent status bar would
+  // otherwise overlap (and swallow taps on) the header row, so pad it manually.
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#000',
+    paddingTop: Platform.OS === 'android' ? RNStatusBar.currentHeight ?? 0 : 0,
+  },
   loading: { flex: 1, backgroundColor: '#000', alignItems: 'center', justifyContent: 'center' },
 });
